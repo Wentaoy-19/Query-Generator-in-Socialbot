@@ -1,0 +1,11 @@
+python train_t5_entity.py \
+    --model_name google/flan-t5-large \
+    --dataset_path ../dataset/train_entity.json \
+    --out_dir ../out \
+    --device_batch_size 1 \
+    --gradient_accumulate_steps 64 \
+    --epochs 2 \
+    --lr 1e-5 \
+    --logging_steps 50 \
+    --save_steps 500 \
+    --eval_steps 500  
