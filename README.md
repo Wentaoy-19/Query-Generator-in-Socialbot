@@ -27,6 +27,7 @@ Link of Finetuned Flan-t5-Large Entity Tracker: https://huggingface.co/HAAAALAND
 
 ### Query Generator
 | Model | Version | Rouge Score |
+|  ----  | ----  | ---- | 
 | Flan-T5-Large with cosmo | Zero-shot | 0.1749 |
 | Flan-T5-Large with cosmo | Finetuned | 0.4477 |
 | Flan-T5-XL with cosmo | Zero-shot | 0.2032 |
