@@ -1,11 +1,12 @@
 python train_t5_query.py \
     --model_name google/flan-t5-large \
-    --dataset_path ../dataset/train_query_nocosmo.json \
-    --out_dir ../query_nocosmo_5k \
+    --dataset_path ../dataset/train_query.json \
+    --out_dir ../_test_query \
     --device_batch_size 1 \
     --gradient_accumulate_steps 64 \
     --epochs 2 \
     --lr 1e-5 \
     --logging_steps 50 \
     --save_steps 500 \
-    --eval_steps 500  
+    --eval_steps 500  \
+    --cosmo true

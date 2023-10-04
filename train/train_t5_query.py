@@ -41,7 +41,7 @@ def compute_metrics_rouge(eval_preds):
 
 
 class t5_dataset_query(Dataset):
-    def __init__(self, train_path, tokenizer, max_length=300,is_eval = False):
+    def __init__(self, train_path, tokenizer, max_length=300,is_eval = False, cosmo = True):
         fp = open(train_path)
         self.dataset = json.load(fp)
         self.tokenizer = tokenizer
@@ -49,6 +49,7 @@ class t5_dataset_query(Dataset):
         self.is_valid = is_eval 
         self.n_eval = 1000
         self.length = 6000
+        self.cosmo = cosmo
         print(self.length)
         if(self.is_valid == False):
             self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(self.n_eval,len(self.dataset))]
@@ -65,6 +66,7 @@ class t5_dataset_query(Dataset):
         else:
             return self.n_eval
     
+    
     # def prepare_prompt(self,context,entity):
     #     prompt = f"You are given a short dialog between a user and a bot for a discussion on {entity}. Convert the bot response to a question to use for internet search to get relevant knowledge for continuing the response.\n\n"
     #     # prompt = f"You are given a short dialog between a user and a bot for a discussion on {entity}. For the next bot response, generate a search query to use for the internet\n\n"
@@ -72,9 +74,16 @@ class t5_dataset_query(Dataset):
     #     prompt += "\n\nquestion:"
     #     return prompt
     
-    def prepare_prompt(self,context, entity = None):
-        prompt = context + "\n\nquestion:"
-        return prompt 
+    def prepare_prompt(self,context, entity):
+        if(self.cosmo):
+            prompt = f"You are given a short dialog between a user and a bot for a discussion on {entity}. Convert the bot response to a question to use for internet search to get relevant knowledge for continuing the response.\n\n"
+            prompt += context
+            prompt += "\n\nquestion:"
+            return prompt
+        else:
+            prompt = f"You are given a short dialog between a user and a bot for a discussion on {entity}. For the next bot response, generate a search query to use for the internet\n\n"
+            prompt += context + "\n\nquestion:"
+            return prompt 
     
     def __getitem__(self, idx):
         return {
@@ -95,13 +104,14 @@ if __name__ == "__main__":
     parser.add_argument('--logging_steps',type=int,default=20)
     parser.add_argument('--save_steps',type=int,default=100)
     parser.add_argument('--eval_steps',type=int,default=100)
+    parser.add_argument('--cosmo',type=bool,default=True)
     args = parser.parse_args()
 
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     data_collator = DataCollatorForSeq2Seq(tokenizer,model = model)
-    ds_train = t5_dataset_query(args.dataset_path,tokenizer)
-    ds_eval = t5_dataset_query(args.dataset_path,tokenizer,is_eval= True)
+    ds_train = t5_dataset_query(args.dataset_path,tokenizer,cosmo=args.cosmo)
+    ds_eval = t5_dataset_query(args.dataset_path,tokenizer,is_eval= True, cosmo=args.cosmo)
     out_dir = args.out_dir
 
     training_args = Seq2SeqTrainingArguments(
