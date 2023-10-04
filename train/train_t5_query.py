@@ -48,21 +48,30 @@ class t5_dataset_query(Dataset):
         self.max_length = max_length
         self.is_valid = is_eval 
         self.n_eval = 1000
-        self.length = 6000
+        self.length = len(self.dataset)
         self.cosmo = cosmo
-        print(self.length)
         if(self.is_valid == False):
-            self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(self.n_eval,len(self.dataset))]
-            self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(self.n_eval,len(self.dataset))]
-            self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(self.n_eval,len(self.dataset))]
+            if(self.cosmo):
+                self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(self.n_eval,len(self.dataset))]
+                self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(self.n_eval,len(self.dataset))]
+                self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(self.n_eval,len(self.dataset))]
+            else:
+                self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],None),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(self.n_eval,len(self.dataset))]
+                self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],None),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(self.n_eval,len(self.dataset))]
+                self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(self.n_eval,len(self.dataset))]              
         else:
-            self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(0,self.n_eval)]
-            self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(0,self.n_eval)]
-            self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(0,self.n_eval)]
+            if(self.cosmo):
+                self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(0,self.n_eval)]
+                self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],self.dataset[i]['entity']),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(0,self.n_eval)]
+                self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(0,self.n_eval)]
+            else:
+                self.input_ids = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],None),truncation=True, max_length=self.max_length, padding="max_length")['input_ids']) for i in range(0,self.n_eval)]
+                self.atten_masks = [torch.tensor(self.tokenizer(self.prepare_prompt(self.dataset[i]['context'],None),truncation=True, max_length=self.max_length, padding="max_length")['attention_mask']) for i in range(0,self.n_eval)]
+                self.labels = [torch.tensor(self.tokenizer(self.dataset[i]['query_gen'],truncation = True,max_length = 20,padding="max_length")["input_ids"]) for i in range(0,self.n_eval)]
+                
     def __len__(self):
         if(self.is_valid == False):
             return self.length - self.n_eval
-            # return len(self.dataset) - self.n_eval
         else:
             return self.n_eval
     
@@ -104,14 +113,15 @@ if __name__ == "__main__":
     parser.add_argument('--logging_steps',type=int,default=20)
     parser.add_argument('--save_steps',type=int,default=100)
     parser.add_argument('--eval_steps',type=int,default=100)
-    parser.add_argument('--cosmo',type=bool,default=True)
+    parser.add_argument('--cosmo',type=int,default=1)
     args = parser.parse_args()
-
+    
+    cosmo = True if(args.cosmo==1) else False
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_name)
     tokenizer = AutoTokenizer.from_pretrained(args.model_name)
     data_collator = DataCollatorForSeq2Seq(tokenizer,model = model)
-    ds_train = t5_dataset_query(args.dataset_path,tokenizer,cosmo=args.cosmo)
-    ds_eval = t5_dataset_query(args.dataset_path,tokenizer,is_eval= True, cosmo=args.cosmo)
+    ds_train = t5_dataset_query(args.dataset_path,tokenizer,cosmo=cosmo)
+    ds_eval = t5_dataset_query(args.dataset_path,tokenizer,is_eval= True, cosmo=cosmo)
     out_dir = args.out_dir
 
     training_args = Seq2SeqTrainingArguments(
@@ -129,7 +139,7 @@ if __name__ == "__main__":
         eval_steps=args.eval_steps,
         load_best_model_at_end=True,
         predict_with_generate=True,
-        
+
         logging_steps=args.logging_steps,
         logging_strategy="steps",
     )

@@ -16,9 +16,9 @@ python train_t5_entity.py
 
 Finetune Query Generator 
 
-\<dataset>:Finetune query generator with cosmo response on train_query.json, without cosmo with train_query_nocosmo_3turn.json
+\<dataset>:Finetune query generator with cosmo response on train_query.json, without cosmo with train_query_withoutcosmo.json
 
-\<cosmo>: true if training with cosmo response, false if training without cosmo response
+\<cosmo>: 1 if use cosmo response, 0 if not use cosmo response
 ```
 python train_t5_query.py 
     --model_name google/flan-t5-large 
@@ -46,6 +46,7 @@ python train_t5_query.py
 - save_steps: Save checkpoint steps 
 - eval_steps: Run evaluation steps
 ## datasets
+The first 1000 samples in these datasets are reserved for evaluation set, not used for training.
 - train_entity.json: training dataset for entity 
 - train_query.json: training dataset for query generator with cosmo response
-- train_query_nocosmo_3turn.json: training dataset for query generator without cosmo response
+- train_query_withoutcosmo.json: training dataset for query generator without cosmo response
